@@ -1,4 +1,10 @@
-#v0.1
+#v0.2
+
+import sys
+from time import time
+
+start = time()
+print("Intializing.", end="", flush=True)
 
 def autoinstall(import_statement):
     try:
@@ -6,17 +12,22 @@ def autoinstall(import_statement):
     except ModuleNotFoundError as missing_pkg:
         inp = input(f"Package '{missing_pkg.name}' required. Install it now? (y/N): ")
         if "y" in inp.lower():
-            import sys, subprocess
+            import subprocess
             subprocess.check_call([sys.executable, "-m", "pip", "install", missing_pkg.name])
             print("\n")
             exec(import_statement, globals())
+    finally:
+        print(".", end="", flush=True)
 
 
-autoinstall("from IPython import embed")
+
+# Load dependencies
+autoinstall("import IPython")
 autoinstall("import sympy as sp")
 #autoinstall("import numpy")
 #autoinstall("import matplotlib")
 
+from IPython.core.magic import register_line_magic
 from sympy import pi,sin,cos,tan
 
 
@@ -43,7 +54,20 @@ ZatD = lambda z0, zl, B, l: sp.N(z0*(zl+1j*z0*tan(B*l))/(z0+1j*zl*tan(B*l)), pre
 #   add clear function to clear stored variables
 # override lamba function so calling it with no arguments in the REPL returns definition instead of memory position
 
+# Util functions
+def reset():
+    from IPython import get_ipython
+    get_ipython().run_line_magic("reset", "")
 
-embed(autocall=1)
-#import code
-#code.interact(local=locals())
+
+# IPython config
+from traitlets.config import Config
+c = Config()
+c.StoreMagics.autorestore = True
+c.InteractiveShell.autocall = 2
+c.InteractiveShell.ast_node_interactivity='last_expr_or_assign'
+
+end = time()
+print(f"\nDone in {end - start} seconds")
+
+IPython.start_ipython(argv=[], user_ns=globals(), config=c)
