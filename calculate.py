@@ -1,4 +1,9 @@
-#v0.2
+#v0.3
+
+## TODO:
+# open another window (GUI) to display defined variables
+# store variables persistently
+#   add clear function to clear stored variables
 
 import sys
 from time import time
@@ -10,12 +15,19 @@ def autoinstall(import_statement):
     try:
         exec(import_statement, globals())
     except ModuleNotFoundError as missing_pkg:
-        inp = input(f"Package '{missing_pkg.name}' required. Install it now? (y/N): ")
+        inp = input(f"\nPackage '{missing_pkg.name}' required. Install it now? (y/N): ")
         if "y" in inp.lower():
-            import subprocess
-            subprocess.check_call([sys.executable, "-m", "pip", "install", missing_pkg.name])
-            print("\n")
-            exec(import_statement, globals())
+            try:
+                import subprocess
+                subprocess.check_call([sys.executable, "-m", "pip", "install", missing_pkg.name])
+                print("\n")
+                exec(import_statement, globals())
+            except Exception as e:
+                print(e)
+                input("Press any key to exit")
+                exit()
+        else:
+            exit()
     finally:
         print(".", end="", flush=True)
 
@@ -24,14 +36,16 @@ def autoinstall(import_statement):
 # Load dependencies
 autoinstall("import IPython")
 autoinstall("import sympy as sp")
-#autoinstall("import numpy")
 #autoinstall("import matplotlib")
 
-from IPython.core.magic import register_line_magic
+
+from IPython import get_ipython
 from sympy import pi,sin,cos,tan
 
 
 precision = 5
+
+
 
 # Common Electromagnetic Constants
 c = 2.998e8
@@ -48,16 +62,22 @@ Sag = 6.173e7
 SWR = lambda gamma: sp.N((1+abs(gamma))/(1-abs(gamma)), precision)
 ZatD = lambda z0, zl, B, l: sp.N(z0*(zl+1j*z0*tan(B*l))/(z0+1j*zl*tan(B*l)), precision)
 
-## TODO:
-# show variables and their values
-# store variables persistently
-#   add clear function to clear stored variables
-# override lamba function so calling it with no arguments in the REPL returns definition instead of memory position
+
 
 # Util functions
-def reset():
-    from IPython import get_ipython
-    get_ipython().run_line_magic("reset", "")
+def clear(opt=None):
+    try:
+        opt = opt.__name__ # dirty hack
+    except:
+        pass
+
+    if not opt:
+        get_ipython().run_line_magic("reset", "-fs")
+    elif opt.lower() == "all": 
+        get_ipython().run_line_magic("reset", "-fs in out")
+
+def vars():
+    get_ipython().run_line_magic("whos", "")
 
 
 # IPython config
